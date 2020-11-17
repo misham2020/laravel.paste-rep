@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Paste;
+use App\Repositories\PasteRepositories;
+use App\User;
+use App\Http\Requests\PasteRequest;
+
+use Illuminate\Support\Facades\DB;
+
+class PasteController extends SiteController
+{
+    public function __construct(User $u_rep) {
+    	
+
+    	parent::__construct(new \App\Repositories\PasteRepositories(new \App\Paste));
+    	
+    	
+        $this->u_rep = $u_rep;
+        
+        
+    	
+    	
+    	
+    	
+    	$this->template = 'index';
+		
+    }
+    public function index()
+    {
+        //
+        $lang = DB::table('languages')->get();
+     
+        $lang = $lang->reduce(function ($lanRoles, $lang) {
+		    $lanRoles[$lang->id] = $lang->language;
+		    return $lanRoles;
+        }, []);
+        //dd($lang);
+        $timeOn = DB::table('deadlines')->get();
+        
+        $timeOn = $timeOn->reduce(function ($timeRoles, $timeOn) {
+		    $timeRoles[$timeOn->id] = $timeOn->deadline;
+		    return $timeRoles;
+        }, []);
+       
+        //$paste = $this->getPaste();
+   
+        $content = view('content')->with(['lang' => $lang, 'timeOn' => $timeOn])->render();
+        $this->vars = array_add($this->vars,'content',$content);
+      
+         $paste = $this->getPaste();
+         $this->contentRightBar = view('indexBar')->with('paste',$paste)->render();
+         
+        
+        
+        return $this->renderOutput();
+    }
+    public function getPaste() {
+		$paste = $this->p_rep->get();
+		return $paste;
+    }
+    public function create($id)
+    {
+        //
+        
+        $past = DB::table('pastebin')->where('id',$id)->first();
+        //dd($past);
+		//$this->title =  '';
+       
+        $content = view('content_new')->with('past',$past)->render();
+        $this->vars = array_add($this->vars,'content',$content);
+
+        $paste = $this->getPaste();
+         $this->contentRightBar = view('indexBar')->with('paste',$paste)->render();
+        
+        return $this->renderOutput();
+    }
+    public function store(PasteRequest $request)
+    {
+        //
+        
+        //$id = $this->p_rep->one($id);
+        $result = $this->p_rep->addPaste($request);
+        
+		if(is_array($result) && !empty($result['error'])) {
+			return back()->with($result);
+		}
+		return redirect()->route('store')->with($result);
+    }
+    
+}
